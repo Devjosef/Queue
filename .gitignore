@@ -34,6 +34,10 @@ market_entropy_analyzer
 test_*
 performance_benchmarks
 
+# Keep test source files but ignore test executables
+!tests/
+!tests/*.cpp
+
 # CMake generated files
 CMakeCache.txt
 CMakeFiles/
