@@ -101,8 +101,8 @@ private:
                   << ", SELL=" << distribution[2] << "\n";
         std::cout << "  Classification: " << classify_entropy(entropy) << "\n";
         
-        // Market crash should show low entropy with panic selling
-        assert(distribution[2] >> distribution[1]); // Much more sells than buys
+    // Market crash should show low entropy with panic selling
+    assert(distribution[2] > distribution[1]); // Much more sells than buys
         assert(entropy < 0.9); // Low to moderate entropy (panic behavior)
         
         std::cout << "✓ Market crash simulation passed\n\n";

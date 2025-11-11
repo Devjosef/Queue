@@ -2,21 +2,21 @@
 
 ## Purpose & Goal
 
-**Purpose**: This project applies Shannon Entropy from information theory to analyze trader behavior patterns and their correlation with market volatility through concurrent queue-based systems.
+**Purpose**: Apply Shannon entropy from information theory to analyze trader behavior patterns and their relationship to market volatility using a concurrent pipeline.
 
-**Goal**: Develop a robust, high-performance mathematical framework for predicting market volatility through behavioral complexity analysis in real-time trading environments.
+**Goal**: Provide a tested, research implementation that computes Shannon entropy over trader actions, exercises the computation in simulated market scenarios, and exposes a pipeline for future benchmarking and real-data integration.
 
 ## Theory & Approach
 
 ### Shannon Entropy in Market Analysis
-Shannon entropy quantifies the unpredictability of traders actions
+Shannon entropy quantifies the unpredictability of trader actions.
 
 - **Low Entropy (0-0.5 bits)**: Predictable behavior (mass buying/selling)
-- **Medium Entropy (0.5-1.2 bits)**: Mixed behavior patterns  
-- **High Entropy (1.2+ bits)**: Unpredictable, chaotic behavior
+- **Medium Entropy (0.5-1.2 bits)**: Mixed behavior patterns
+- **High Entropy (1.2+ bits)**: Unpredictable, diverse behavior
 
 ### Core Hypothesis
-**Thesis**: Trader behavior entropy correlates with market volatility, thus providing early warning signals for market stress through real-time analysis.
+Trader behavior entropy may correlate with market volatility. The repository provides simulation evidence that this relationship is nuanced and requires real-market validation.
 
 ## Methodology
 
@@ -24,235 +24,136 @@ Shannon entropy quantifies the unpredictability of traders actions
 - **Trader Actions**: 0 (hold), 1 (buy), 2 (sell)
 - **Time Window**: Adaptive sliding windows over sequential trading periods
 - **Entropy Calculations**: H = -Σ(p_i * log2(p_i))
-- **Concurrency**: Multi-producer, multi-consumer queue systems
+- **Concurrency**: Queue-based producer/consumer pipeline (mutex-based and hybrid implementations)
 
 ### Testing Framework
 - **Unit Tests**: Validate entropy calculations with known distributions
 - **Robustness Tests**: Edge cases (empty data, identical actions, random patterns)
-- **Market Simulation**: Realistic scenarios (Bull/Bear markets, crashes, recovery)
-- **Performance Tests**: High-frequency trading simulation and throughput validation
+- **Market Simulation**: Synthetic scenarios (Bull/Bear markets, crashes, recovery)
+- **Performance Micro-benchmark**: Short synthetic HFT run used for extrapolated throughput measurements (see Performance notes)
 
 ## Implementation
 
 ### Core Entropy Calculation
 ```cpp
 double EntropyCalculator::calculate_entropy(const std::vector<TraderAction>& actions) {
-    if (actions.empty()) return 0.0;
-    std::map<TraderAction, int> counts;
-    for (const auto& action : actions) {
-        counts[action]++;
+  if (actions.empty()) return 0.0;
+  std::map<TraderAction, int> counts;
+  for (const auto& action : actions) {
+    counts[action]++;
+  }
+  double entropy = 0.0;
+  int total = static_cast<int>(actions.size());
+  for (const auto& [action, count] : counts) {
+    double p = static_cast<double>(count) / total;
+    if (p > 0) {
+      entropy -= p * std::log2(p);
     }
-    double entropy = 0.0;
-    int total = static_cast<int>(actions.size());
-    for (const auto& [action, count] : counts) {
-        double p = static_cast<double>(count) / total;
-        if (p > 0) {
-            entropy -= p * std::log2(p);
-        }
-    }
-    return entropy;
+  }
+  return entropy;
 }
 ```
 
 ### Concurrent Queue System
+This repository contains two queue variants:
+
+- `ConcurrentQueue` — a straightforward mutex-protected queue using `std::mutex` and `std::condition_variable`.
+- `OptimizedQueue` — a hybrid design with separate head/tail mutexes, an atomic size counter, condition variables, batch pop support, and backpressure logic. It is optimized for throughput but is not a fully lock-free MPMC queue.
+
 ```cpp
 template <typename T>
 class ConcurrentQueue {
-    void push(const T& value);
-    bool try_pop(T& result);
-    void wait_and_pop(T& result);
-    bool empty() const;
+  void push(const T& value);
+  bool try_pop(T& result);
+  void wait_and_pop(T& result);
+  bool empty() const;
 private:
-    mutable std::mutex m_mutex;
-    std::queue<T> m_queue;
-    std::condition_variable m_cond_var;
+  mutable std::mutex m_mutex;
+  std::queue<T> m_queue;
+  std::condition_variable m_cond_var;
 };
 ```
 
 ## Testing & Validation Results
 
 ### Mathematical Validation
-- **Unit Tests**: 100% pass rate (exact entropy calculations)
-- **Robustness Tests**: 17/17 edge cases handled gracefully
-- **Mathematical Accuracy**: Achieves theoretical maximum entropy (1.585 bits) for equal distributions
+- **Unit Tests**: Passed (entropy calculations match expectations for tested distributions)
+- **Robustness Tests**: Edge cases handled (empty windows, single-action windows, equal distributions)
+- **Mathematical Accuracy**: Matches theoretical expectations (max ~1.585 bits for 3-action equal distribution)
 
 ### Market Simulation Results
-**Status**: All simulations passed (6/6 scenarios)
-**Test Coverage**: Realistic market condition simulations
+- **Status**: All provided synthetic simulations ran successfully (6/6 scenarios on this machine)
+- **Representative findings**:
+  - Crash scenarios show low entropy and heavy sell dominance in synthetic data.
+  - Normal and bull/bear scenarios produce higher entropy consistent with mixed distributions.
+  - The HFT simulation is a short micro-benchmark (5k events) that prints throughput/latency for that run; throughput is extrapolated and must be validated by dedicated benchmarking.
 
-#### Key Test Scenarios
-- **Bull Market**: High entropy (1.39 bits) + More buys than sells
-- **Bear Market**: High entropy (1.27 bits) + More sells than buys  
-- **Market Crash**: Low entropy (0.40 bits) + 95% panic selling
-- **Normal Trading**: High entropy (1.54 bits) + Balanced distribution
-- **HFT Simulation**: 5M packets/sec throughput + Zero overflow events
-- **Market Recovery**: 5.7x entropy increase from crash to recovery
+### Performance notes
+- The repository contains a micro-benchmark within the market simulation that extrapolates throughput from a short (5k-event) run. That extrapolation can produce multi-million ops/sec figures on some machines, but this is a synthetic, short-duration measurement. It should not be cited as proof of sustained, production-grade 5M ops/sec throughput or guaranteed sub-millisecond latency without dedicated, reproducible benchmarking.
 
-### Performance Validation
-- **HFT Throughput**: 5,000,000 packets/sec processing
-- **Queue Stability**: Zero overflow events under high load
-- **Latency**: Sub-millisecond processing time
-- **Concurrency**: Thread-safe operations with fine-grained locking
+## Fixes applied during validation
+
+- Fixed ordering in `include/market_pipeline.hpp` to increment `metrics_.total_processed` before computing average latency (prevents division-by-zero / NaN).
+- Corrected a test assertion typo in `tests/test_market_simulation.cpp`.
 
 ## Validating the Thesis
 
-### Primary Findings: Complex Entropy-Volatility Relationship
-**Simulation Results**: Market behavior patterns validated through mock data scenarios
-
-### Market Behavior Patterns Discovered:
-- **Market Crashes → Low Entropy + High Volatility**
-  - Mass panic creates predictable behavior (low entropy)
-  - Results in extreme volatility spikes
-  - Pattern: Predictable panic → Unpredictable market
-
-- **Normal Trading → High Entropy + Moderate Volatility**
-  - Diverse trader actions (high entropy)
-  - Results in stable, moderate volatility
-  - Pattern: Unpredictable behavior → Predictable market
-
-- **Market Stress → Mixed Patterns**
-  - Varying entropy levels
-  - Consistently high volatility
-  - Pattern: Mixed behavior → High uncertainty
+The repository demonstrates that entropy can differentiate synthetic market conditions. However, the relationship between entropy and volatility is nuanced in simulations and requires real-market data and careful time-series analysis for confirmation.
 
 ## Conclusions
 
-### Thesis Partially Supported
-The relationship between entropy and volatility is more sophisticated than initially hypothesized:
-
-- Entropy successfully differentiates market conditions in simulations
-- Captures behavioral patterns traditional measures miss
-- Provides early warning framework for market stress detection
-- Reveals counterintuitive panic behavior patterns
-
-### Key Insights:
-- Low entropy during crashes indicates mass panic behavior
-- High entropy during normal periods indicates healthy market diversity
-- Entropy measure is more nuanced than simple volatility correlation
-- Behavioral complexity provides unique market intelligence
-
-### Practical Applications:
-- **Risk Management**: Low entropy + high volatility = potential crash signal
-- **Market Timing**: Entropy changes precede volatility spikes
-- **Behavioral Analysis**: Quantifies market sentiment complexity
-- **Trading Strategy**: Entropy-based volatility prediction framework
+- The implementation provides a correct Shannon entropy calculation and a working, tested pipeline for research experiments.
+- The queue implementations are mutex-based or hybrid (not lock-free).
+- Simulations show promising patterns, but performance claims should be qualified as synthetic micro-benchmark results. Real-world validation is required.
 
 ## Usage
 
 ### Quick Start
 ```bash
-# Build main executable
 make all
-
-# Run all tests
 make test
-
-# Run specific test suites
-make test-queue      # Queue edge cases
-make test-entropy    # Entropy calculations
-make test-pipeline   # Pipeline integration
-make test-market     # Market simulations
-
-# Performance testing
-make perf
-
-# Clean build artifacts
-make clean
+make perf   # runs the market simulation micro-benchmark
 ```
 
 ### Manual Compilation
 ```bash
-# Build main executable
 g++ -std=c++17 -I include -pthread -O3 -o market_entropy_analyzer src/*.cpp
-
-# Build and run market simulation
-g++ -std=c++17 -I include -pthread -O3 -o test_market_simulation tests/test_market_simulation.cpp src/market_data.cpp src/entropy_calculator.cpp
-./test_market_simulation
 ```
 
 ## Files Structure
 ```
 queue/
-├── include/                    # Header files
-│   ├── market_data.hpp        # Market data structures
-│   ├── concurrent_queue.hpp   # Thread-safe queue
-│   ├── concurrent_queue.tpp   # Queue template implementation
-│   ├── entropy_calculator.hpp # Shannon entropy calculation
-│   ├── optimized_queue.hpp    # High-performance queue with backpressure
-│   ├── sliding_entropy_calculator.hpp # Adaptive window entropy
-│   └── market_pipeline.hpp    # Complete market data pipeline
-├── src/                       # Source files
-│   ├── market_data.cpp        # Market data implementation
-│   ├── entropy_calculator.cpp # Entropy calculation implementation
-│   └── main.cpp              # Main application entry point
-├── tests/                     # Test suites
-│   ├── test_queue_edge_cases.cpp      # Queue boundary testing
-│   ├── test_entropy_edge_cases.cpp    # Entropy edge cases
-│   ├── test_pipeline_edge_cases.cpp   # Pipeline integration testing
-│   └── test_market_simulation.cpp     # Real market data simulation
-├── CMakeLists.txt            # CMake build configuration
-├── Makefile                  # Build automation
-├── LICENSE                   # MIT License
-├── .gitignore               # Git ignore patterns
-└── README.md                # Project documentation
+├── include/                    # Header files (queues, pipeline, entropy)
+├── src/                        # Source files (entropy, market data, main)
+├── tests/                      # Test suites and simulations
+├── Makefile                    # Build and test targets
+└── README.md                   # This file
 ```
 
 ## Technical Specifications
 
-**Language**: C++17 with modern concurrency features
-**Queue Type**: Lock-free, multi-producer, multi-consumer with backpressure
-**Entropy Calculation**: Incremental sliding window updates
-**Memory Model**: Sequential consistency with atomic operations
-**Thread Safety**: Full thread safety with fine-grained locking
-**Performance**: Sub-millisecond latency, 5M+ ops/sec throughput
-**Entropy Range**: 0.0 to 1.585 bits (theoretical max for 3 actions)
-**Test Coverage**: 100% edge cases, 6 market simulation scenarios
+**Language**: C++17
+**Queue Type**: Mutex-protected or hybrid (mutex + atomics). Not fully lock-free.
+**Entropy Calculation**: Shannon entropy over sliding windows
+**Memory Model**: Uses atomics for metrics; core queues use mutexes
+**Thread Safety**: Thread-safe via mutexes and atomics
+**Performance**: Micro-benchmark reports are synthetic; dedicated benchmarking required for sustained numbers
+**Entropy Range**: 0.0 to ~1.585 bits (for 3 discrete actions)
 
 ## Dependencies
 
 - C++17 or later
-- CMake 3.15+ (optional)
-- Threading support (std::thread, std::atomic)
-- pthread library
+- pthread (for multithreading)
 
 ## References
 
 - Shannon, C.E. (1948). "A Mathematical Theory of Communication"
-- [Shannon Entropy Market Analysis](https://github.com/Devjosef/Shannon-Entropy)
-- Lock-Free Programming Patterns
-- High-Frequency Trading Systems
-- Information Theory in Behavioral Finance
 
-## Conclusion
+## Notes
 
-Queue-based concurrency provides a robust foundation for real-time Shannon entropy analysis, enabling high-throughput market data processing with mathematical precision. The concurrent queue system successfully handles 5M packets/sec with sub-millisecond latency while maintaining 100% mathematical accuracy in entropy calculations. Market simulations validate the entropy-volatility correlation patterns, demonstrating that predictable panic behavior (low entropy) correlates with high volatility, while diverse trading behavior (high entropy) correlates with market stability. The queue architecture offers unique insights for market prediction and risk management through real-time behavioral complexity analysis. Has yet to been tested on real data.
-
-## Testing & Validation Results
-
-### Build Success
-**Status**: Successfully compiled and executed
-**Compiler**: g++ with C++17 standard
-**Dependencies**: Threading support (pthread)
-**Build Command**: `g++ -std=c++17 -I include -pthread -o market_entropy_analyzer src/*.cpp`
-
-### Test Coverage Summary
-- **Edge Case Testing**: 17/17 tests passed (100% success rate)
-- **Market Simulation**: 6/6 scenarios validated
-- **Mathematical Accuracy**: 100% (achieves theoretical maximum entropy)
-- **Performance**: 5M packets/sec throughput with sub-millisecond latency
-
-### Key Validation Results
-- **Concurrent Queue**: Template-based implementation with thread safety
-- **Entropy Calculator**: Mathematically precise Shannon Entropy calculation
-- **Market Pipeline**: End-to-end processing with producer-consumer pattern
-- **Performance**: HFT-ready throughput with zero overflow events
-
-### Detailed Test Results
+This project is research-oriented. The codebase and tests are useful for experiments and local validation. 
 For comprehensive testing documentation, see `tests/README.md`
 
+
+
 **Note**: All tests use simulated/mock data. Has yet to be tested on real market data.
-
-### IMPORTANT NOTE:
-Has yet to be tested on realtime market data
-
-

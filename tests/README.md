@@ -1,7 +1,7 @@
 # Testing Documentation
 
 ## Overview
-This document contains comprehensive testing results for the Queue Entropy Analysis project, including edge case testing, market simulations, and performance validation.
+This document contains testing results for the Queue Entropy Analysis project: edge case testing, market simulations on synthetic data, and a micro-benchmark within the market simulation. All numbers are from local test runs and use synthetic/simulated data.
 
 ## Test Structure
 
@@ -64,11 +64,12 @@ This document contains comprehensive testing results for the Queue Entropy Analy
 - **Behavior**: Balanced distribution, maximum entropy due to diverse trading
 - **Result**: ✓ Passed
 
-##### 5. High-Frequency Trading Simulation
-- **Processing Time**: 1 ms for 5000 packets
-- **Throughput**: 5,000,000 packets/sec
-- **Final Entropy**: 1.5766 bits (Maximum entropy)
-- **Queue Performance**: 0 overflow events
+##### 5. High-Frequency Trading Simulation (synthetic micro-benchmark)
+- **Processing Time**: ~1-2 ms for 5000 packets (varies per run)
+- **Throughput (extrapolated)**: Multi-million packets/sec when extrapolated from measured time
+- **Final Entropy**: 1.5766 bits
+- **Queue Performance**: 0 overflow events in this test
+- **Important Note**: This throughput is extrapolated from a short (5k event), synthetic run and should not be treated as proof of sustained production throughput without dedicated benchmarking.
 - **Result**: ✓ Passed
 
 ##### 6. Market Recovery Simulation
@@ -81,38 +82,33 @@ This document contains comprehensive testing results for the Queue Entropy Analy
 
 ### Mathematical Accuracy
 - **Theoretical Maximum**: log₂(3) ≈ 1.585 bits
-- **Actual Result**: 1.58496 bits
-- **Accuracy**: 100% (exact match within floating-point precision)
+- **Actual Result**: Matches theoretical expectation for equal distributions
+- **Accuracy**: Correct implementation of Shannon entropy formula
 
-### Throughput Performance
-- **HFT Simulation**: 5,000,000 packets/sec
-- **Processing Time**: 1 ms for 5000 packets
-- **Queue Stability**: Zero overflow events under high load
-- **Latency**: Sub-millisecond processing time
+### Throughput Performance (synthetic, extrapolated)
+- **HFT Simulation**: Short synthetic run (5k events) extrapolates to multi-million packets/sec; actual sustained throughput requires dedicated benchmarking
+- **Queue Stability**: Zero overflow events in this synthetic test
+- **Latency**: Measured latencies vary per run; static extrapolation from one micro-benchmark is not reliable for production claims
 
 ### Concurrency Performance
-- **Thread Safety**: Full thread safety with fine-grained locking
-- **Producer-Consumer**: Successful multi-threaded operations
-- **Backpressure**: Effective overflow protection
-- **Memory Management**: Efficient template implementation
+- **Thread Safety**: Queue implementation uses mutexes; thread-safe
+- **Producer-Consumer**: Tested with producer/consumer pattern on this machine
+- **Backpressure**: Pipeline includes backpressure logic; tested but not at scale
+- **Memory Management**: Template-based, tested for correctness
 
 ## Key Findings
 
-### Entropy Patterns Validated
-- **Market Crashes**: Low entropy (0.27-0.40 bits) due to panic selling
-- **Normal Trading**: High entropy (1.54 bits) due to diverse behavior
-- **Bull/Bear Markets**: High entropy (1.27-1.39 bits) due to mixed strategies
-- **Recovery**: Clear entropy increase from crash to normal levels
+### Entropy Patterns in Simulations
+- **Market Crashes (synthetic)**: Low entropy (0.27-0.40 bits) due to dominance of sell actions
+- **Normal Trading (synthetic)**: High entropy (1.54 bits) due to mixed distributions
+- **Bull/Bear Markets (synthetic)**: High entropy (1.27-1.39 bits) due to varied action distributions
+- **Recovery (synthetic)**: Clear entropy increase observed during recovery phase
 
-### Performance Under Real Conditions
-- **HFT Throughput**: 5M packets/sec with sub-millisecond latency
-- **Queue Stability**: Zero overflow events under high load
-- **Entropy Accuracy**: Achieves theoretical maximum (1.58 bits) for diverse data
-
-### Research Validation
-- Confirms original Shannon Entropy research findings
-- Demonstrates entropy-volatility correlation patterns
-- Validates system under realistic market conditions
+### Limitations and Next Steps
+- All tests use synthetic data; no real market data has been tested
+- Performance numbers are micro-benchmark extrapolations and require dedicated benchmarking for sustained claims
+- Entropy calculations are mathematically correct; the relationship to real market volatility is unvalidated
+- Queue is mutex-based (or hybrid with atomics), not lock-free
 
 ## Running Tests
 
@@ -136,16 +132,17 @@ make perf            # Run performance benchmarks
 
 ## Test Coverage Summary
 
-| Component | Edge Cases | Market Scenarios | Status |
-|-----------|------------|------------------|---------|
-| Queue | 5 | - | 100% Pass |
-| Entropy Calculator | 6 | - | 100% Pass |
-| Pipeline | 6 | - | 100% Pass |
-| Market Simulation | - | 6 | 100% Pass |
-| **Total** | **17** | **6** | **100% Pass** |
+| Component | Tests | Status |
+|-----------|-------|--------|
+| Queue Edge Cases | 5 | Pass |
+| Entropy Edge Cases | 6 | Pass |
+| Pipeline Edge Cases | 6 | Pass |
+| Market Simulations (synthetic) | 6 | Pass |
+| **Total** | **23** | **Pass** |
 
 ## Notes
-- All tests use simulated/mock data
-- Mathematical accuracy validated against theoretical maximum
-- Performance metrics measured under controlled conditions
+- All tests use simulated/synthetic data
+- Entropy calculations are mathematically correct
+- Performance numbers from the HFT simulation are extrapolated from a 5k-event micro-benchmark; not validated for sustained production throughput
 - Has yet to be tested on real market data
+- Fixes applied during validation (Nov 2025): corrected latency metric calculation and test assertion typo

@@ -86,9 +86,11 @@ public:
         if (success) {
             auto end_time = std::chrono::high_resolution_clock::now();
             auto latency = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
-            
-            update_latency_metrics(latency);
+
+            // Account the processed item first so latency-update calculations
+            // which rely on total_processed do not divide by zero.
             metrics_.total_processed.fetch_add(1);
+            update_latency_metrics(latency);
         } else {
             metrics_.queue_full_count.fetch_add(1);
             
