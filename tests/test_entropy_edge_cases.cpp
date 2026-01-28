@@ -43,7 +43,7 @@ void test_maximum_entropy() {
     calc.add_action(TraderAction::SELL);
     
     double entropy = calc.get_current_entropy();
-    assert(entropy > 1.58); // Should be close to log2(3) ≈ 1.585
+    assert(entropy > 1.584); // Should be close to log2(3) ≈ 1.585 meaning the max theoritcal value.
     assert(calc.is_high_entropy());
     
     std::cout << "✓ Maximum entropy: " << entropy << " bits\n";

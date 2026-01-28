@@ -6,6 +6,9 @@
 #include <chrono>
 #include <iomanip>
 #include <cassert>
+#include <thread>
+
+std::string classify_entropy(double entropy);
 
 class MarketSimulator {
 public:
@@ -46,8 +49,8 @@ private:
         std::cout << "  Classification: " << classify_entropy(entropy) << "\n";
         
         // Bull market should show moderate entropy with more buys
-        assert(distribution[1] > distribution[2]); // More buys than sells
-        assert(entropy > 0.5); // Moderate to high entropy
+        assert(distribution[1] > distribution[2]); // Much more buys than sells
+        assert(entropy > 0.9); // Moderate to high entropy 
         
         std::cout << "✓ Bull market simulation passed\n\n";
     }
@@ -75,7 +78,7 @@ private:
         
         // Bear market should show moderate entropy with more sells
         assert(distribution[2] > distribution[1]); // More sells than buys
-        assert(entropy > 0.5); // Moderate to high entropy
+        assert(entropy > 0.9); // Low to moderate entropy
         
         std::cout << "✓ Bear market simulation passed\n\n";
     }
@@ -102,8 +105,8 @@ private:
         std::cout << "  Classification: " << classify_entropy(entropy) << "\n";
         
     // Market crash should show low entropy with panic selling
-    assert(distribution[2] > distribution[1]); // Much more sells than buys
-        assert(entropy < 0.9); // Low to moderate entropy (panic behavior)
+        assert(distribution[2] > distribution[1]); // Much more sells than buys
+        assert(entropy < 0.9); // Moderate entropy (panic behavior)
         
         std::cout << "✓ Market crash simulation passed\n\n";
     }
@@ -302,8 +305,13 @@ private:
     }
 };
 
-int main() {
-    MarketSimulator simulator;
-    simulator.run_market_simulation();
-    return 0;
+int main(int argc, char** argv) {
+    try {
+        MarketSimulator simulator;
+        simulator.run_market_simulation();
+        return 0;
+    } catch (const std::exception& e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+        return 1;
+    }
 }

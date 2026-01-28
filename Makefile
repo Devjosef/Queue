@@ -5,9 +5,15 @@ SRCDIR = src
 TESTDIR = tests
 BUILDDIR = build
 
+# Optional override for install path
+PREFIX ?= /usr/local
+
 # Source files (exclude performance test from main build)
 SOURCES = $(filter-out $(SRCDIR)/performance_test.cpp, $(wildcard $(SRCDIR)/*.cpp))
 TEST_SOURCES = $(wildcard $(TESTDIR)/*.cpp)
+
+# New folder, same structure (mirror structure under build)
+OBJS = $(SOURCES:$(SRCDIR)/%.cpp=$(BUILDDIR)/%.o)
 
 # Executables
 MAIN_EXEC = market_entropy_analyzer
@@ -16,13 +22,22 @@ TEST_EXECS = $(TEST_SOURCES:$(TESTDIR)/%.cpp=test_%)
 # Default target
 all: $(MAIN_EXEC)
 
-# Main executable
-$(MAIN_EXEC): $(SOURCES)
+# Ensure build directory exists
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
+
+# Convert every .cpp source file into its own .o object file
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp | $(BUILDDIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Main executable (links from precompiled object files)
+$(MAIN_EXEC): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
+#--------------------------------------------------------------
 # Test executables
-test_%: $(TESTDIR)/%.cpp $(filter-out $(SRCDIR)/main.cpp, $(SOURCES))
-	$(CXX) $(CXXFLAGS) -o $@ $^
+test_%: $(TESTDIR)/%.cpp $(filter-out $(BUILDDIR)/main.o, $(OBJS))
+	$(CXX) $(CXXFLAGS) $^ -o $@
 
 # Build all tests
 tests: $(TEST_EXECS)
