@@ -1,3 +1,4 @@
+// Core algorithm to compute Shannon entropy for TraderAction sequences
 #include "entropy_calculator.hpp"
 #include <cmath>
 #include <map>
