@@ -147,8 +147,20 @@ public:
 
 private:
     void producer_loop(size_t id) {
-        while (running_.load()) {
-            std::this_thread::sleep_for(std::chrono::microseconds(100));
+        static double last_price = 695.49;
+
+    while (running_.load()) {
+        double spy_price = get_spy_price();
+        double dp = (spy_price - last_price) / last_price * 100.0;
+        
+        TraderAction action = get_spy_action(dp);
+
+        MarketData data;
+        data.add_action(action);
+        feed_market_data(data);
+
+        last_price = spy_price;
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
     }
 

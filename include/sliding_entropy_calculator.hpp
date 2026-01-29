@@ -18,6 +18,7 @@ public:
         : window_size_(window_size)
         , min_window_(min_window)
         , max_window_(max_window)
+        , history_size_(100)
         , current_entropy_(0.0)
         , previous_entropy_(0.0)
         , action_counts_{0, 0, 0}
@@ -83,6 +84,7 @@ public:
     }
 
     const std::array<uint32_t, 3>& get_action_distribution() const {
+        std::lock_guard<std::mutex> lock(mutex_);
         return action_counts_;
     }
 
@@ -112,6 +114,7 @@ public:
     void clear() {
         std::lock_guard<std::mutex> lock(mutex_);
         window_.clear();
+        entropy_history_.clear();
         action_counts_ = {0, 0, 0};
         total_actions_ = 0;
         current_entropy_ = 0.0;
@@ -121,6 +124,17 @@ public:
     std::vector<TraderAction> get_window_actions() const {
         std::lock_guard<std::mutex> lock(mutex_);
         return std::vector<TraderAction>(window_.begin(), window_.end());
+    }
+
+    std::vector<double> get_entropy_history(size_t n =10) const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::vector<double> history;
+        history.reserve(std::min(n, entropy_history_.size()));
+        auto it = entropy_history_.rbegin();
+        for (size_t i = 0; i < n && it != entropy_history_.rend(); ++i, ++it) {
+            history.push_back(*it);
+        }
+        return history;
     }
 
 private:
@@ -135,12 +149,13 @@ private:
         total_actions_--;
     }
 
-    // Update entropy calculation based on current action distribution
+    // Update entropy calculation based on the current action distribution
     void update_entropy_incremental() {
         previous_entropy_ = current_entropy_;
         
         if (total_actions_ == 0) {
             current_entropy_ = 0.0;
+            update_entropy_history(0.0);
             return;
         }
         
@@ -153,9 +168,10 @@ private:
         }
         
         current_entropy_ = entropy;
+        update_entropy_history(entropy);
     }
 
-    // Adapt window size based on entropy change rate
+    // Adapt window size based on the entropy change rate
     void adapt_window_size() {
         double entropy_change = std::abs(current_entropy_ - previous_entropy_);
         
@@ -173,14 +189,23 @@ private:
         }
     }
 
+    void update_entropy_history(double entropy){
+        entropy_history_.push_back(entropy);
+        if (entropy_history_.size() > history_size_) {
+            entropy_history_.pop_front();
+        }
+    }
+
     // Configuration parameters
     size_t window_size_;
     size_t min_window_;
     size_t max_window_;
+    size_t history_size_;
     
     // Thread-safe state
     mutable std::mutex mutex_;
     std::deque<TraderAction> window_;
+    std::deque<double> entropy_history_;
     std::array<uint32_t, 3> action_counts_;
     uint32_t total_actions_;
     double current_entropy_;

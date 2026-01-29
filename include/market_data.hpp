@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cstdint> // specifically added for fixed-width integer types
+#include <string>
 
 enum class TraderAction : uint8_t {
     HOLD = 0,
@@ -27,5 +28,9 @@ class MarketData {
     private:
         std::vector<TraderAction> actions_;
 };
+
+double get_spy_price(); 
+TraderAction get_spy_action(double dp);
+
 
 #endif // MARKET_DATA_HPP
