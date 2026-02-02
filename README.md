@@ -52,7 +52,7 @@ The central premise is that Trader Behavior Entropy serves as a leading or concu
 
 - *Adaptive Windowing*: Unlike fixed interval analysis, the window size dynamically scales between **50 and 500 periods** based on the Entropy Change Rate (See: SEC.hpp).
 
--*Mathematical Framework*: Computes **Shannon Entropy (H)** using base-2 logarithms to output measurements in **bits**. The calculation is incremental to ensure O(1) or near O(1) update complexity
+- *Mathematical Framework*: Computes **Shannon Entropy (H)** using base-2 logarithms to output measurements in **bits**. The calculation is incremental to ensure O(1) or near O(1) update complexity
 
 - *Concurrency & pipeline Architecture*: Producer-consumer model: Here we utilize a custom **OptimizedQueue** to decouple data ingestion from heavy mathematical computation.
 
@@ -124,7 +124,7 @@ Testing & Validation Results
 ### Mathematical Validation
 - **Unit Tests**: Passed (entropy calculations match expectations for tested distributions)
 - **Robustness Tests**: Edge cases handled (empty windows, single-action windows, equal distributions)
-- **Mathematical Accuracy**: Matches theoretical expectations (1.12164 bits measured from live SPY, max ~1.585 bits for 3-action equal distribution)
+- **Mathematical Accuracy**: Matches theoretical expectations (1.12164 bits measured from live SPY, max ~1.585 bits for a 3-action equal distribution)
 
 ### Live SPY PIPELINE Results
 ```bash
@@ -135,7 +135,7 @@ Testing & Validation Results
 -**Status**: No backpressure
 
 ### Performance notes
-- The repository contains a micro-benchmark within the market simulation that extrapolates throughput from a short (5k-event) run. That extrapolation can produce multi-million ops/sec figures on some machines, but this is a synthetic, short-duration measurement. It should not be cited as proof of sustained, production-grade 5M ops/sec throughput or guaranteed sub-millisecond latency without dedicated, reproducible benchmarking.
+- The repository includes a short high frequency trading simulation that reports a throughput figure (for example, around 5M packets/sec on some machines). This is a synthetic, short duration micro benchmark. It should not be cited as proof of sustained throughput or guaranteed sub-milisecond latency. Without dedicated & reproducible benchmarking on target hardware.
 
 ## Fixes applied during validation
 
