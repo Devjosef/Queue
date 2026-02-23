@@ -159,6 +159,7 @@ The pipeline successfully differentiates trader behavior entropy regimes (medium
 - **OptimizedQueue backpressure handling confirmed working** in production like conditions
 - Queue implementations are mutex-based or hybrid
 - **Technical foundation validated** - pipeline ready for real-market data integration and volatility correlation analysis
+
 ## Usage
 
 ### Quick Start
@@ -168,14 +169,6 @@ make test # Generates + runs test binaries
 ./market_entropy_analyzer    # Live SPY pipeline command
 make perf  # Market sim micro benchmark
 
-## Files Structure
-```
-queue/
-├── include/                # OptimizedQueue.hpp, MarketPipeline.hpp, SEC.hpp
-├── src/                   # Core logic and SPY simulation
-├── tests/                 # Unit, Robustness, and Market simulations
-└── Makefile               # make all, make test, make perf
-```
 
 ## Technical Specifications
 
