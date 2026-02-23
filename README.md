@@ -117,7 +117,6 @@ ConcurrentQueue, a straightforward mutex-protected queue using std::mutex and st
 
 OptimizedQueue, a hybrid design with separate head/tail mutexes, atomic size counter, condition variables, batch pop support, and backpressure logic. Live SPY validation:(Queue size: 0).
 
-Testing & Validation Results
 
 ## Testing & Validation Results
 
