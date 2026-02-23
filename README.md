@@ -60,7 +60,7 @@ The central premise is that Trader Behavior Entropy serves as a leading or concu
 
 Mutex-based: Which ensures strict consistency within the SEC.HPP(Sliding Entropy Calculator) state.
 
-Atomic-based: High performance telemtry tracking in MLP.HPP(Market Pipeline(specifically the PipelineMetrics)) using **std::atomic** and *compare_exchange_weak* for lock free latency and entropy rate updates
+Atomic-based: High performance telemetry tracking in MLP.HPP(Market Pipeline(specifically the PipelineMetrics)) using **std::atomic** and *compare_exchange_weak* for lock free latency and entropy rate updates
 
 *Backpressure Mechanism*: The pipeline monitors queue depth; if the consumer (entropy engine) falls behind, the producer is throttled at 90 % capacity to prevent memory exhaustion and data loss.
 
